@@ -1,14 +1,60 @@
 from database.database import get_db
-from database.models import User, Gemini
-from sqlalchemy import select, delete, bindparam
+from database.models import User, Gemini, LabWorks
+from sqlalchemy import select, delete, update
 from sqlalchemy.sql import asc, desc
+from loguru import logger
 
 async def add_user(telegram_id: int, name: str, group: str):
     async with get_db() as session:
         new_user = User(telegram_id=telegram_id, name=name, group=group)
         session.add(new_user)
     return
+
+
+async def add_lab_repo(developer_id: int, description: str):
+    stmt = (
+            select(LabWorks.lab_num, LabWorks.title)
+            .where(LabWorks.developer_id==developer_id)
+        )
+    async with get_db() as session:
+        result = await session.execute(stmt)
+        lab_num_edit, title = result.fetchone()
+      
+    async with get_db() as session:
+        updater = (
+            update(LabWorks)
+            .where(LabWorks.lab_num==lab_num_edit)
+            .values(description=description)
+        )
+        await session.execute(updater)
+    return title
     
+
+async def get_developer_user(developer_id):
+    stmt = select(LabWorks.developer_id).where(LabWorks.developer_id == developer_id)
+    async with get_db() as session:
+        result = await session.execute(stmt)
+        developers_data = result.fetchone()
+    if developers_data:
+        return developers_data
+    else:
+        return None 
+
+async def get_developer_users():
+    stmt = select(LabWorks.developer_id)
+    async with get_db() as session:
+        result = await session.execute(stmt)
+        developers_data = result.fetchall()
+
+    
+    if developers_data:
+        developers_ids = [developers_id[0] for developers_id in developers_data]
+        logger.info(developers_ids)
+        return developers_ids
+    else:
+        return None 
+
+
 
 async def add_theme(title: str):
     return

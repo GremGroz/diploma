@@ -1,24 +1,29 @@
 from task1.handlers.AdminHandlers import router_admin_gemini
 from task1.handlers.UserHandlers import router_user_gemini
-from routers.userRouters import router
+from routers.userRouters import router as user_router
+from routers.developerRouters import router as developer_router
+from routers.common import router as common_router
 from database.database import init_db
 from loguru import logger
-from bot_setup import dp, bot
+from bot_setup import dp, bot, dev_task_queue
 import asyncio
-
+from utils import dev_process_task
 
 
 logger.add("bot_debug.log", format="{time} {level} {message}", level="INFO")
 
 
 
-dp.include_router(router)
-dp.include_router(router_admin_gemini)
-dp.include_router(router_user_gemini)
-# router.register_message_handler(start_task_recording, commands=['start_task_recording'])
-# router.register_message_handler(finalize_task_entry, commands=['finalize_task_entry'])
+dp.include_routers(developer_router,
+                   router_admin_gemini,
+                   user_router,
+                   router_user_gemini,
+                   common_router)
+
 
 async def main():
+    logger.info('Bot is running')
+    asyncio.create_task(dev_process_task(dev_task_queue))
     await init_db()
     await dp.start_polling(bot)
     

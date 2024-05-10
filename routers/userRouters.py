@@ -1,28 +1,29 @@
 from aiogram.filters import Command, CommandStart
 from aiogram import types, F, Router
-from config import ADMIN_ID
 from routers.states import UserStates
 from database.crud import get_user_info, add_user
 from aiogram.fsm.context import FSMContext
 from loguru import logger
-router = Router()
+import asyncio
 
+
+router = Router()
+queue = asyncio.Queue()
 
 @router.message(CommandStart())
 async def input_surname(message: types.Message, state: FSMContext):
     telegram_id = message.from_user.id
-    if telegram_id != ADMIN_ID:
-        check_user = await get_user_info(telegram_id)
-        if not check_user:
-            await state.set_state(UserStates.lastname)
-            current_state = await state.get_state()
-            logger.info(f"Current state after: {current_state}")
-            await message.reply("Привет!\n\nЯ бот для проведения лабораторных работ по СИИ.\nДавайте знакомиться!")
-            await message.reply('Введите Фамилию:')
-        else:
-            await message.reply(f"{check_user[0]}, вы уже зарегестрированы")
+    logger.info(f"Пользователь {telegram_id} начал взаимодействие с ботом")
+    check_user = await get_user_info(telegram_id)
+    if not check_user:
+        await state.set_state(UserStates.lastname)
+        current_state = await state.get_state()
+        logger.info(f"Current state after: {current_state}")
+        await message.reply("Привет!\n\nЯ бот для проведения лабораторных работ по СИИ.\nДавайте знакомиться!")
+        await message.reply('Введите Фамилию:')
     else:
-        await message.reply("Привет!\nТы администратор, просто скажи мне когда запустить задание для студентов, и я сделаю это.")
+        await message.reply(f"{check_user[0]}, вы уже зарегестрированы")
+    logger.debug(f"Текущее состояние FSM: {await state.get_state()}")
     
     
 

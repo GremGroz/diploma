@@ -9,11 +9,16 @@ from database.crud import get_user_info, clear_gemini_table
 from aiogram.fsm.context import FSMContext, StorageKey
 from loguru import logger
 from data import user_queue
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandStart
 import copy
 
 
 router_admin_gemini = Router()
+
+@router_admin_gemini.message(CommandStart(), F.from_user.id == ADMIN_ID)
+async def start(message: types.Message):
+     await message.reply("Привет!\nТы администратор, просто скажи мне когда запустить задание для студентов, и я сделаю это.")
+    
 
 @router_admin_gemini.message(Command('start_task_recording'))
 async def start_task_recording(message: types.Message):
