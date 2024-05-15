@@ -9,4 +9,4 @@ COPY . .
 # Установка зависимостей
 RUN pip install -r requirements.txt
 
-CMD ["/bin/bash", "-c", "python run.py; python copy.py"]
+CMD ["/bin/bash", "-c", "python run.py; python copy_master.py"]

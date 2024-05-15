@@ -4,7 +4,11 @@ from routers.states import UserStates
 from database.crud import get_user_info, add_user
 from aiogram.fsm.context import FSMContext
 from loguru import logger
+from keyboards import get_user_keyboard, get_dynamic_user_keyboard
+from bot_setup import bot, user_task_queue
+from pathlib import Path
 import asyncio
+import os
 
 
 router = Router()
@@ -22,7 +26,8 @@ async def input_surname(message: types.Message, state: FSMContext):
         await message.reply("Привет!\n\nЯ бот для проведения лабораторных работ по СИИ.\nДавайте знакомиться!")
         await message.reply('Введите Фамилию:')
     else:
-        await message.reply(f"{check_user[0]}, вы уже зарегестрированы")
+        keyboard = await get_user_keyboard(telegram_id)
+        await message.reply(f"{check_user[0]}, вы уже зарегистрированы", reply_markup=keyboard)
     logger.debug(f"Текущее состояние FSM: {await state.get_state()}")
     
     
@@ -51,6 +56,51 @@ async def process_group_number(message: types.Message, state: FSMContext):
     name = data['lastname'] + ' ' + data['firstname']
 
     await add_user(telegram_id=message.from_user.id, name=name, group=message.text)
+    keyboard = await get_user_keyboard(message.from_user.id)
+    await message.reply(f"Спасибо, {name}, ваши данные сохранены.", reply_markup=keyboard)
+    await state.clear()
     
-    await message.reply(f"Спасибо, {name}, ваши данные сохранены.")
+@router.message(F.text == "Список лабораторных работ")
+async def handle_show_labs(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    await state.set_state(UserStates.selecting_lab)
+    keyboard = await get_dynamic_user_keyboard(user_id)
+    await message.reply("Выберите лабораторную работу", reply_markup=keyboard)
+    
+@router.message(F.text=="Вернуться")
+async def handle_back_to_main(message: types.Message, state: FSMContext):
+    await state.clear()
+    keyboard = await get_user_keyboard(message.from_user.id)
+    await message.reply("Главное меню", reply_markup=keyboard)
+    
+@router.message(UserStates.selecting_lab)
+async def handle_lab_selection(message: types.Message, state: FSMContext):
+    await state.set_state(UserStates.passing_lab)
+    title = message.text
+    if title.endswith(" ✅"):
+        title = title[:-2]
+    if not os.path.exists(f'labs/{title}'):
+        await message.reply(f"Лабораторной работы \'{title}\' не существует")
+        await state.set_state(UserStates.selecting_lab)
+        return
+    await state.update_data(title=title)
+    await message.reply("Вы можете перерешивать задачу неограниченное количество раз, в оценку записывается последний результат")
+    await message.reply("Отправьте своё решение файлом .py")
+
+
+
+@router.message(F.document, UserStates.passing_lab)
+async def handle_passing_lab(message: types.Message, state: FSMContext):
+    file_id = message.document.file_id
+    file = await bot.get_file(file_id)
+    file_path = file.file_path
+    data = await state.get_data()
+    title = data['title']
+    folder_path = Path(f'labs/{title}/Test/')
+    logger.info(f'download into {folder_path} by user {message.from_user.id}')
+    folder_path.mkdir(parents=True, exist_ok=True)
+    if os.path.exists(folder_path / f'task_{message.from_user.id}.py'):
+        os.remove(folder_path / f'task_{message.from_user.id}.py')
+    await bot.download_file(file_path, folder_path / f'task_{message.from_user.id}.py')
+    await user_task_queue.put((folder_path, title, message.from_user.id))   
     await state.clear()

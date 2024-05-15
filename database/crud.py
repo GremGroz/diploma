@@ -1,14 +1,61 @@
 from database.database import get_db
-from database.models import User, Gemini, LabWorks
+from database.models import User, Gemini, LabWorks, Grade, Themes
 from sqlalchemy import select, delete, update
-from sqlalchemy.sql import asc, desc
+from sqlalchemy.sql import asc, desc, and_
 from loguru import logger
+from datetime import datetime
+
+
+async def get_tested_labs():
+
+    stmt = (
+        select(LabWorks.title)
+        .where(LabWorks.test_code == True)
+        .distinct()
+    )
+    async with get_db() as session:
+        result = await session.execute(stmt)
+        tested_labs = result.fetchall()
+        return [row[0] for row in tested_labs]
+
+async def get_passed_labs(user_id: int):
+    stmt = select(Grade.lab_work).where(Grade.user_id == user_id)
+    async with get_db() as session:
+        result = await session.execute(stmt)
+        passed_labs = result.fetchall()
+        return [row[0] for row in passed_labs] if passed_labs else []
+    
+
 
 async def add_user(telegram_id: int, name: str, group: str):
     async with get_db() as session:
         new_user = User(telegram_id=telegram_id, name=name, group=group)
         session.add(new_user)
     return
+
+# async def get_cheked_lab(user_id):
+#     stmt = (
+#         select(LabWorks.test_code)
+#         .where(LabWorks.developer_id == user_id)
+#     )
+#     async with get_db() as session:
+#         result = await session.execute(stmt)
+#         cheked_lab = result.fetchone()
+#         return cheked_lab[0]
+    
+
+
+async def get_dev_title(user_id):
+    stmt = (
+        select(LabWorks.title)
+        .where(LabWorks.developer_id == user_id)
+    )
+    
+    async with get_db() as session:
+        result = await session.execute(stmt)
+        dev_title = result.fetchone()
+        return str(dev_title[0]) if dev_title else None
+            
 
 
 async def add_lab_repo(developer_id: int, description: str):
@@ -57,13 +104,46 @@ async def get_developer_users():
 
 
 async def add_theme(title: str):
+    async with get_db() as session:
+        new_theme = Themes(title=title)
+        session.add(new_theme)
+
+async def add_lab_work(lab_num: int, developer_id: int, title: str, description:str):
+    async with get_db() as session:
+        new_lab = LabWorks(
+            lab_num=lab_num, developer_id=developer_id,
+            title=title, description=description,
+                           )
+        session.add(new_lab)
     return
 
-async def add_lab_work(lab_num: int, developer_id: int, title: str, description:str, test_code: bool):
-    return
+async def add_grade(user_id: int, lab_work: int, grade: int):
+    async with get_db() as session:
+        # Проверка существующей записи
+        stmt = select(Grade).where(Grade.user_id == user_id, Grade.lab_work == lab_work)
+        result = await session.execute(stmt)
+        existing_grade = result.scalar_one_or_none()
+        
+        if existing_grade:
+            # Если запись существует, обновляем её
+            update_stmt = (
+                update(Grade)
+                .where(Grade.user_id == user_id, Grade.lab_work == lab_work)
+                .values(grade=grade, completed_at=datetime.utcnow())
+            )
+            await session.execute(update_stmt)
+        else:
+            # Если записи не существует, добавляем новую
+            new_grade = Grade(
+                user_id=user_id,
+                lab_work=lab_work,
+                grade=grade
+            )
+            session.add(new_grade)
+        
+        # Подтверждение транзакции
+        await session.commit()
 
-async def add_grade(user_id: int, lab_work_id: int, grade: int):
-    return
 
 async def add_gemini(user_id: int, request: str, response: str):
     async with get_db() as session:

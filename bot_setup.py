@@ -5,4 +5,5 @@ import asyncio
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
-dev_task_queue = asyncio.Queue()
+task_queue = asyncio.Queue()
+user_task_queue = asyncio.Queue()
