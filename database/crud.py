@@ -6,6 +6,15 @@ from loguru import logger
 from datetime import datetime
 
 
+
+async def get_grades_by_student_id(user_id: int):
+    stmt = select(Grade.lab_work, Grade.grade).where(Grade.user_id == user_id)
+    async with get_db() as session:
+        result = await session.execute(stmt)
+        grades = result.fetchall()
+        return grades
+
+
 async def get_tested_labs():
 
     stmt = (

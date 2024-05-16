@@ -1,7 +1,7 @@
 from aiogram.filters import Command, CommandStart
 from aiogram import types, F, Router
 from routers.states import UserStates
-from database.crud import get_user_info, add_user
+from database.crud import get_user_info, add_user, get_grades_by_student_id
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 from keyboards import get_user_keyboard, get_dynamic_user_keyboard
@@ -72,7 +72,21 @@ async def handle_back_to_main(message: types.Message, state: FSMContext):
     await state.clear()
     keyboard = await get_user_keyboard(message.from_user.id)
     await message.reply("Главное меню", reply_markup=keyboard)
+
+@router.message(F.text == "Мои оценки")
+async def handle_show_grades(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    grades = await get_grades_by_student_id(user_id)
     
+    if grades:
+        response = "Ваши оценки:\n"
+        for lab_work, grade in grades:
+            response += f"{lab_work}: {grade}\n"
+    else:
+        response = "У вас пока нет оценок."
+    
+    await message.reply(response)
+
 @router.message(UserStates.selecting_lab)
 async def handle_lab_selection(message: types.Message, state: FSMContext):
     await state.set_state(UserStates.passing_lab)
@@ -84,8 +98,9 @@ async def handle_lab_selection(message: types.Message, state: FSMContext):
         await state.set_state(UserStates.selecting_lab)
         return
     await state.update_data(title=title)
+    keyboard = await get_user_keyboard(message.from_user.id)
     await message.reply("Вы можете перерешивать задачу неограниченное количество раз, в оценку записывается последний результат")
-    await message.reply("Отправьте своё решение файлом .py")
+    await message.reply("Отправьте своё решение файлом .py", reply_markup=keyboard)
 
 
 

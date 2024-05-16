@@ -10,6 +10,7 @@ class ButtonTextUser:
     SEND_LAB = "Отправить лабораторную работу"
     TEST_LAB = "Отправить тестовый файл"
     LABS = "Список лабораторных работ"
+    GRADES = "Мои оценки"  
 
 
 class ButtonTextAdmin:
@@ -49,6 +50,7 @@ async def get_user_keyboard(user_id) -> ReplyKeyboardMarkup:
         buttons.append(ButtonTextUser.SEND_LAB)
         buttons.append(ButtonTextUser.TEST_LAB)
     buttons.append(ButtonTextUser.LABS)
+    buttons.append(ButtonTextUser.GRADES)
     return create_reply_keyboard(buttons)
 
 
