@@ -62,6 +62,7 @@ async def process_group_number(message: types.Message, state: FSMContext):
     
 @router.message(F.text == "Список лабораторных работ")
 async def handle_show_labs(message: types.Message, state: FSMContext):
+    logger.info(f"Пользователь {message.from_user.id} запросил список лабораторных работ")
     user_id = message.from_user.id
     await state.set_state(UserStates.selecting_lab)
     keyboard = await get_dynamic_user_keyboard(user_id)
@@ -69,12 +70,14 @@ async def handle_show_labs(message: types.Message, state: FSMContext):
     
 @router.message(F.text=="Вернуться")
 async def handle_back_to_main(message: types.Message, state: FSMContext):
+    logger.info(f"Пользователь {message.from_user.id} вернулся в главное меню")
     await state.clear()
     keyboard = await get_user_keyboard(message.from_user.id)
     await message.reply("Главное меню", reply_markup=keyboard)
 
 @router.message(F.text == "Мои оценки")
 async def handle_show_grades(message: types.Message, state: FSMContext):
+    logger.info(f"Пользователь {message.from_user.id} запросил свои оценки")
     user_id = message.from_user.id
     grades = await get_grades_by_student_id(user_id)
     
@@ -89,6 +92,7 @@ async def handle_show_grades(message: types.Message, state: FSMContext):
 
 @router.message(UserStates.selecting_lab)
 async def handle_lab_selection(message: types.Message, state: FSMContext):
+    logger.info(f"Пользователь {message.from_user.id} выбрал лабораторную работу {message.text}")
     await state.set_state(UserStates.passing_lab)
     title = message.text
     if title.endswith(" ✅"):

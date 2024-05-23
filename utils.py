@@ -102,52 +102,7 @@ async def run_lab(file_path):
     # Запуск блокирующей функции в пуле потоков
     return await run_in_executor(build_and_run_container)
 
-# async def run_lab(file_path):
-#     data_path = os.path.abspath(os.path.join(os.getcwd(), 'data'))
-#     json_file_path = os.path.join(data_path, 'grade.json')
 
-#     with open(json_file_path, 'w') as json_file:
-#         json.dump({'grade': 'ошибка в записи оценки'}, json_file)
-
-#     logger.info('Docker function called')
-#     client = docker.from_env()
-#     image_name = "sai_labs"
-#     file_path = os.path.abspath(file_path)
-    
-#     try:
-#         logger.info(f'Building Docker image from {file_path}')
-#         client.images.build(path=file_path, dockerfile="Dockerfile", tag=image_name, rm=True)
-#         logger.info(f'Starting container with image {image_name}')
-#         container = client.containers.run(
-#             image=image_name,
-#             volumes={data_path: {"bind": "/data", "mode": "rw"}},
-#             detach=True,
-#             remove=True
-#         )
-
-#         for line in container.logs(stream=True):
-#             decoded_line = line.strip().decode()
-#             logger.info(decoded_line)
-#             if "Error" in decoded_line:
-#                 return decoded_line
-
-#         result = container.wait()
-#         logger.info(f"Container exited with status code {result['StatusCode']}")
-
-#         try:
-#             with open(json_file_path, "r", encoding="utf-8") as f:
-#                 data = json.load(f)
-#                 logger.info(f"Grade: {data['grade']}")
-#                 return data["grade"]
-#         except json.JSONDecodeError as e:
-#             logger.error(f"JSON decode error: {e}")
-#             return str(e)
-#         except Exception as e:
-#             logger.error(f"Error reading grade.json: {e}")
-#             return str(e)
-#     except Exception as e:
-#         logger.error(f"Docker error: {e}")
-#         return str(e)
 
 async def copy_to_test_dir(project_path, user_id):
     new_filename = 'task.py'

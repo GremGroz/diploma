@@ -26,13 +26,13 @@ def create_reply_keyboard(buttons: List[str], resize_keyboard: bool = True) -> R
         keyboard=[[KeyboardButton(text=btn)] for btn in buttons],
         resize_keyboard=resize_keyboard
     )
-
-
 async def get_dynamic_user_keyboard(user_id: int) -> ReplyKeyboardMarkup:
     labs = await get_tested_labs()
     title_dev_lab = await get_dev_title(user_id)
-    if title_dev_lab:
+    
+    if title_dev_lab and title_dev_lab in labs:
         labs.remove(title_dev_lab)
+    
     passed_labs = await get_passed_labs(user_id)
     if passed_labs:
         result_kb_button = [lab + " ✅" if lab in passed_labs else lab for lab in labs]
@@ -42,6 +42,10 @@ async def get_dynamic_user_keyboard(user_id: int) -> ReplyKeyboardMarkup:
     result_kb_button.append("Вернуться")
     
     return create_reply_keyboard(result_kb_button)
+
+
+
+
 
 
 async def get_user_keyboard(user_id) -> ReplyKeyboardMarkup:
